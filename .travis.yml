@@ -5,13 +5,15 @@ services:
 - docker
 
 stages:
-- Build and Test
+- Build and Tests
+# - Verify App Version In Helm
 - Github Release
 - Docker Release
+# - Helm Chart and Docker Image Tests
 
 jobs:
   include:
-    - stage: Build and Test
+    - stage: Build and Tests
       name: Build
       language: go
       go: 1.14.x
@@ -29,6 +31,10 @@ jobs:
       script: make license-test
     - name: Helm lint test
       script: make helm-lint-test
+    - name: Helm lint test Local
+      script: test/helm/chart-test.sh -fl
+    - name: Helm lint test Local 2
+      script: make helm-lint-test-local
     - name: AEMM E2E tests
       language: go
       go: 1.14.x
@@ -37,6 +43,10 @@ jobs:
       script: make build-release-assets
     - name: Build Docker images
       script: make build-docker-images
+    # - stage: Verify App Version In Helm
+    #   name: Verify App Version In Helm
+    #   if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(GITHUB_TOKEN) IS present
+    #   script: make helm-app-version-test
     - stage: Github Release
       name: Github release
       if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(GITHUB_TOKEN) IS present
@@ -45,3 +55,19 @@ jobs:
       name: Docker release
       if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(DOCKERHUB_TOKEN) IS present
       script: make release-docker
+    # - stage: Helm Chart and Docker Image Tests
+    #   name: Helm chart / Docker Image Test for K8s v1.18
+    #   script: test/helm/chart-test.sh -k $K8S_VERSION
+    #   env: K8S_VERSION=1.18
+    # - name: Helm chart / Docker Image Test for K8s v1.17
+    #   script: test/helm/chart-test.sh -k $K8S_VERSION
+    #   env: K8S_VERSION=1.17
+    # - name: Helm chart / Docker Image Test for K8s v1.16
+    #   script: test/helm/chart-test.sh -k $K8S_VERSION
+    #   env: K8S_VERSION=1.16
+    # - name: Helm chart / Docker Image Test for K8s v1.15
+    #   script: test/helm/chart-test.sh -k $K8S_VERSION
+    #   env: K8S_VERSION=1.15
+    # - name: Helm chart / Docker Image Test for K8s v1.14
+    #   script: test/helm/chart-test.sh -k $K8S_VERSION
+    #   env: K8S_VERSION=1.14

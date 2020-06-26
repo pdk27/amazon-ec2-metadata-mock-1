@@ -106,6 +106,9 @@ build-and-test: build test
 update-versions-for-release:
 	${MAKEFILE_PATH}/scripts/update-versions-for-release
 
+helm-lint-test-local:
+	${MAKEFILE_PATH}/test/helm/chart-test.sh -fl
+
 helm-tests:
 	helm-app-version-test helm-e2e-test
 

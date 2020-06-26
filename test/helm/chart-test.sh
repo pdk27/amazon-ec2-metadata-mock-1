@@ -10,7 +10,7 @@
 # Prerequisites:
 ## Docker
 
-set -euo pipefail
+set -eo pipefail
 
 # KIND / Kubernetes
 readonly K8s_1_18="v1.18.2"
@@ -54,6 +54,7 @@ Options:
   -p     preserve the provisioned environment after test runs
   -r     reuse kind cluster and docker chart-testing container previously provisioned by this tool
   -d     debug, enables set -x, printing primary commands before executing
+  -f     force run the script, irrespective of whether the Helm chart was changed
   -h     help message
 EOM
 )
@@ -62,6 +63,7 @@ LINT_ONLY=false
 DEBUG=false
 PRESERVE=false
 REUSE_ENV=false
+FORCE_RUN=false
 
 export TERM="xterm"
 RED=$(tput setaf 1)
@@ -96,7 +98,7 @@ create_kind_cluster() {
     $CT_EXEC mkdir -p /root/.kube
     docker cp $KUBECONFIG_TMP_PATH ct:/root/.kube/config
 
-    c_echo "Cluster ready!\n"
+    c_echo "👍 Cluster ready!\n"
 }
 
 handle_errors_and_cleanup() {
@@ -191,7 +193,7 @@ c_echo() {
 }
 
 process_args() {
-    while getopts "hdlprk:c:" opt; do
+    while getopts "hdlprfk:c:" opt; do
         case ${opt} in
             h )
               echo -e "$HELP" 1>&2
@@ -208,6 +210,9 @@ process_args() {
               ;;
             r )
               REUSE_ENV=true
+              ;;
+            f )
+              FORCE_RUN=true
               ;;
             k )
               OPTARG="K8s_$(echo $OPTARG | sed 's/\./\_/g')"
@@ -228,16 +233,34 @@ process_args() {
 main() {
     process_args $@
 
-    trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
+    # by default, run tests only if the helm chart has changed
+    # [[ $TRAVIS_BRANCH ]] && HELM_CHART_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock)
+    echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$HELM_CHART_CHANGED\n" # to remove
 
-    c_echo "Testing Helm charts in a newly provisioned test environment"
-    if [[ $LINT_ONLY == true ]]; then
-        c_echo "Using:\n${BOLD}  * helm/chart-testing version=$CT_TAG\n  * lint only=$LINT_ONLY\n  * preserve test env=$PRESERVE\n  * reuse=$REUSE_ENV\n  * debug=$DEBUG\n${RESET_FMT}"
+    # if [[ $FORCE_RUN == true || ! -z $HELM_CHART_CHANGED ]]; then
+    if [[ $FORCE_RUN == true ]]; then
+    # if [[ $FORCE_RUN == true || $(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock) ]]; then
+        c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
+        echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock)\n" # to remove
+
+        trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
+
+        c_echo "Testing Helm charts in a newly provisioned test environment"
+        if [[ $LINT_ONLY == true ]]; then
+            c_echo "Using:\n${BOLD}  * helm/chart-testing version=$CT_TAG\n  * lint only=$LINT_ONLY\n  * preserve test env=$PRESERVE\n  * reuse=$REUSE_ENV\n  * debug=$DEBUG\n${RESET_FMT}"
+        else
+            c_echo "Using:\n${BOLD}  * kind version=$KIND_VERSION\n  * Kubernetes version=$KIND_IMAGE\n  * helm/chart-testing version=$CT_TAG\n  * lint only=$LINT_ONLY\n  * preserve test env=$PRESERVE\n  * reuse=$REUSE_ENV\n  * debug=$DEBUG\n${RESET_FMT}"
+        fi
+
+        test_charts
     else
-        c_echo "Using:\n${BOLD}  * kind version=$KIND_VERSION\n  * Kubernetes version=$KIND_IMAGE\n  * helm/chart-testing version=$CT_TAG\n  * lint only=$LINT_ONLY\n  * preserve test env=$PRESERVE\n  * reuse=$REUSE_ENV\n  * debug=$DEBUG\n${RESET_FMT}"
+        if [[ $FORCE_RUN == false ]]; then
+            c_echo "Nothing to run. Use -f flag to force run tests."
+        else
+            c_echo "No changes detected to Helm charts. Nothing new to test."
+        fi
+        exit 0
     fi
-
-    test_charts
 }
 
 main $@
