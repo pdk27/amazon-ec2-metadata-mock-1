@@ -18,10 +18,10 @@ jobs:
       language: go
       go: 1.14.x
       script: make build
-    - name: Unit tests
-      language: go
-      go: 1.14.x
-      script: make unit-test
+    # - name: Unit tests
+    #   language: go
+    #   go: 1.14.x
+    #   script: make unit-test
     # - name: Go report card test
     #   script: make go-report-card-test
     # - name: Readme length validator
