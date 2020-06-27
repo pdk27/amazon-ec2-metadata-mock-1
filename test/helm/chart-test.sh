@@ -234,19 +234,19 @@ main() {
     process_args $@
 
     # by default, run tests only if the helm chart has changed
-    # [[ $TRAVIS_BRANCH ]] && HELM_CHART_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock)
+    [ ! -z $TRAVIS_BRANCH ] && HELM_CHART_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH))
     echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$HELM_CHART_CHANGED\n" # to remove
 
     # if [[ $FORCE_RUN == true || ! -z $HELM_CHART_CHANGED ]]; then
-    if [[ $FORCE_RUN == true ]]; then
-    # if [[ $FORCE_RUN == true || $(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock) ]]; then
+    if [ $FORCE_RUN == true ]; then
+    # if [ $FORCE_RUN == true || $(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock) ]; then
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
         echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock)\n" # to remove
 
         trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
 
         c_echo "Testing Helm charts in a newly provisioned test environment"
-        if [[ $LINT_ONLY == true ]]; then
+        if [ $LINT_ONLY == true ]; then
             c_echo "Using:\n${BOLD}  * helm/chart-testing version=$CT_TAG\n  * lint only=$LINT_ONLY\n  * preserve test env=$PRESERVE\n  * reuse=$REUSE_ENV\n  * debug=$DEBUG\n${RESET_FMT}"
         else
             c_echo "Using:\n${BOLD}  * kind version=$KIND_VERSION\n  * Kubernetes version=$KIND_IMAGE\n  * helm/chart-testing version=$CT_TAG\n  * lint only=$LINT_ONLY\n  * preserve test env=$PRESERVE\n  * reuse=$REUSE_ENV\n  * debug=$DEBUG\n${RESET_FMT}"
@@ -254,7 +254,7 @@ main() {
 
         test_charts
     else
-        if [[ $FORCE_RUN == false ]]; then
+        if [ $FORCE_RUN == false ]; then
             c_echo "Nothing to run. Use -f flag to force run tests."
         else
             c_echo "No changes detected to Helm charts. Nothing new to test."
