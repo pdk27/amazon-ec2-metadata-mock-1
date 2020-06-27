@@ -236,6 +236,10 @@ main() {
     # by default, run tests only if the helm chart has changed
     [ ! -z $TRAVIS_BRANCH ] && HELM_CHART_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH))
     echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$HELM_CHART_CHANGED\n" # to remove
+    echo -e "\n$(git remote -v)\n"
+    echo "$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH))"
+    # echo "$(git --no-pager diff --name-only HEAD $(git merge-base HEAD master))"
+    echo "TRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
 
     # if [[ $FORCE_RUN == true || ! -z $HELM_CHART_CHANGED ]]; then
     if [ $FORCE_RUN == true ]; then
