@@ -235,9 +235,10 @@ main() {
 
     # by default, run tests only if the helm chart has changed
     HELM_FILES_CHANGED=""
-    [[ ! -z $TRAVIS_BRANCH ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD | grep helm/amazon-ec2-metadata-mock)
+    echo "Determining files changed"    
     echo "TRAVIS_BRANCH: $TRAVIS_BRANCH"
     echo "HEAD: $(git log | head -n 1)"
+    [[ ! -z $TRAVIS_BRANCH ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD | grep helm/amazon-ec2-metadata-mock)
     echo -e "\n$HELM_FILES_CHANGED"
     echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD)"
     echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD | grep helm/amazon-ec2-metadata-mock))"
