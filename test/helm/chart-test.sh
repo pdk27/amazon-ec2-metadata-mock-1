@@ -242,8 +242,6 @@ main() {
 
     # by default, run tests only if the helm chart has changed
     # get the files changed in the PR / push 
-    HELM_FILES_CHANGED=""
-    echo -e "\nHELM_FILES_CHANGED: $HELM_FILES_CHANGED"
     if [ $TRAVIS_PULL_REQUEST == true ]; then
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH))"
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH | grep helm/amazon-ec2-metadata-mock)"
