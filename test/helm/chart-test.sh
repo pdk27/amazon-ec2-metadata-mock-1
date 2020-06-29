@@ -234,17 +234,15 @@ main() {
     process_args $@
 
     # by default, run tests only if the helm chart has changed
-    [ ! -z $TRAVIS_BRANCH ] && HELM_CHART_CHANGED=$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH))
-    echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$HELM_CHART_CHANGED\n" # to remove
+    [ ! -z $TRAVIS_COMMIT_RANGE ] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
     echo "TRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
-    echo "$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)"
+    echo "HELM_FILES_CHANGED: $HELM_FILES_CHANGED"
+    echo -e "$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)\n"
     echo "$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
 
-    # if [[ $FORCE_RUN == true || ! -z $HELM_CHART_CHANGED ]]; then
-    if [ $FORCE_RUN == true ]; then
-    # if [ $FORCE_RUN == true || $(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock) ]; then
+    if [[ $FORCE_RUN == true || ! -z $HELM_FILES_CHANGED ]]; then
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
-        echo -e "On Travis branch $TRAVIS_BRANCH\nHelm files changed:\n$(git --no-pager diff --name-only HEAD $(git merge-base HEAD $TRAVIS_BRANCH) | grep helm/amazon-ec2-metadata-mock)\n" # to remove
+        c_echo "Changes detected in Helm files for commit range $TRAVIS_COMMIT_RANGE:\n$HELM_FILES_CHANGED"
 
         trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
 
@@ -257,10 +255,10 @@ main() {
 
         test_charts
     else
-        if [ $FORCE_RUN == false ]; then
-            c_echo "Nothing to run. Use -f flag to force run tests."
-        else
+        if [ -z $HELM_FILES_CHANGED ]; then
             c_echo "No changes detected to Helm charts. Nothing new to test."
+        else
+            c_echo "Nothing to run. Use -f flag to force run tests."
         fi
         exit 0
     fi
