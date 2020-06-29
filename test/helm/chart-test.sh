@@ -254,7 +254,7 @@ main() {
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)"
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
         echo "[[ ! -z $TRAVIS_COMMIT_RANGE ]]: $([[ ! -z $TRAVIS_COMMIT_RANGE ]] && echo 's' || echo 'n')"
-        [[ ! -z $TRAVIS_COMMIT_RANGE ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
+        HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
     fi
 
     echo "Debug 1"
@@ -277,7 +277,10 @@ main() {
 
         test_charts
     else
-        if [ -z $HELM_FILES_CHANGED ]; then
+
+        echo "$([[ ! -z $HELM_FILES_CHANGED ]] && echo 's' || echo 'n')"
+        c_echo "No changes detected to Helm charts. Nothing new to test."
+        if [[ -z $HELM_FILES_CHANGED ]]; then
             c_echo "No changes detected to Helm charts. Nothing new to test."
         else
             c_echo "Nothing to run. Use -f flag to force run tests."
