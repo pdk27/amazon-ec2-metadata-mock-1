@@ -232,7 +232,8 @@ process_args() {
 
 main() {
     process_args $@
-
+    trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
+    
     echo "Determining files changed"
     echo "TRAVIS_PULL_REQUEST / origin: $TRAVIS_PULL_REQUEST"
     echo "TRAVIS_BRANCH / target: $TRAVIS_BRANCH"
@@ -252,6 +253,7 @@ main() {
         # known issue: $TRAVIS_COMMIT_RANGE will fail the build on force push.
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)"
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
+        echo "[[ ! -z $TRAVIS_COMMIT_RANGE ]]: $([[ ! -z $TRAVIS_COMMIT_RANGE ]] && echo 's' || echo 'n')"
         [[ ! -z $TRAVIS_COMMIT_RANGE ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
     fi
 
@@ -264,7 +266,7 @@ main() {
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
         c_echo "Changes detected in Helm files for commit range $TRAVIS_COMMIT_RANGE:\n$HELM_FILES_CHANGED"
 
-        trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
+        # trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
 
         c_echo "Testing Helm charts in a newly provisioned test environment"
         if [ $LINT_ONLY == true ]; then
