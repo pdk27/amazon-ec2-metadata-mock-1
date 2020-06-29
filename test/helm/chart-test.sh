@@ -242,6 +242,7 @@ main() {
     # by default, run tests only if the helm chart has changed
     # get the files changed in the PR / push 
     HELM_FILES_CHANGED=""
+    echo -e "\nHELM_FILES_CHANGED: $HELM_FILES_CHANGED"
     if [ $TRAVIS_PULL_REQUEST == true ]; then
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH))"
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH | grep helm/amazon-ec2-metadata-mock)"
@@ -249,12 +250,15 @@ main() {
     else
         # push builds and others
         # known issue: $TRAVIS_COMMIT_RANGE will fail the build on force push.
-        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE))"
+        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)"
         echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
         [[ ! -z $TRAVIS_COMMIT_RANGE ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
     fi
 
+    echo "Debug 1"
     echo -e "\nHELM_FILES_CHANGED: $HELM_FILES_CHANGED"
+    echo "FORCE_RUN: $FORCE_RUN"
+    echo "$([[ ! -z $HELM_FILES_CHANGED ]] && echo 's' || echo 'n')"
 
     if [[ $FORCE_RUN == true || ! -z $HELM_FILES_CHANGED ]]; then
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
