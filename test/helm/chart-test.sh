@@ -232,39 +232,29 @@ process_args() {
 
 main() {
     process_args $@
-    trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
+    # trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
     
     echo "Determining files changed"
     echo "TRAVIS_PULL_REQUEST / origin: $TRAVIS_PULL_REQUEST"
     echo "TRAVIS_BRANCH / target: $TRAVIS_BRANCH"
     echo "HEAD: $(git log | head -n 1)"
-    echo -e "\nTRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
+    echo "TRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
 
     # by default, run tests only if the helm chart has changed
     # get the files changed in the PR / push 
-    if [ $TRAVIS_PULL_REQUEST == true ]; then
-        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH))"
-        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH | grep helm/amazon-ec2-metadata-mock)"
+    if [[ $TRAVIS_PULL_REQUEST == true ]]; then
         HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH | grep helm/amazon-ec2-metadata-mock)
     else
         # push builds and others
         # known issue: $TRAVIS_COMMIT_RANGE will fail the build on force push.
-        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)"
-        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
-        echo "[[ ! -z $TRAVIS_COMMIT_RANGE ]]: $([[ ! -z $TRAVIS_COMMIT_RANGE ]] && echo 's' || echo 'n')"
-        HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
+        [[ ! -z $TRAVIS_COMMIT_RANGE ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock) || true 
     fi
-
-    echo "Debug 1"
-    echo -e "\nHELM_FILES_CHANGED: $HELM_FILES_CHANGED"
-    echo "FORCE_RUN: $FORCE_RUN"
-    echo "$([[ ! -z $HELM_FILES_CHANGED ]] && echo 's' || echo 'n')"
-
+    
     if [[ $FORCE_RUN == true || ! -z $HELM_FILES_CHANGED ]]; then
+        c_echo "Changes detected in Helm files:\n$HELM_FILES_CHANGED"
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
-        c_echo "Changes detected in Helm files for commit range $TRAVIS_COMMIT_RANGE:\n$HELM_FILES_CHANGED"
 
-        # trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
+        trap 'handle_errors_and_cleanup $? $BASH_COMMAND' EXIT
 
         c_echo "Testing Helm charts in a newly provisioned test environment"
         if [ $LINT_ONLY == true ]; then
@@ -275,14 +265,7 @@ main() {
 
         test_charts
     else
-
-        echo "$([[ ! -z $HELM_FILES_CHANGED ]] && echo 's' || echo 'n')"
-        c_echo "No changes detected to Helm charts. Nothing new to test."
-        if [[ -z $HELM_FILES_CHANGED ]]; then
-            c_echo "No changes detected to Helm charts. Nothing new to test."
-        else
-            c_echo "Nothing to run. Use -f flag to force run tests."
-        fi
+        c_echo "No changes detected to Helm charts. Nothing new to test. Use -f flag to force run tests."
         exit 0
     fi
 }
