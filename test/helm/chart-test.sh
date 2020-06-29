@@ -233,25 +233,28 @@ process_args() {
 main() {
     process_args $@
 
-    # by default, run tests only if the helm chart has changed
-    HELM_FILES_CHANGED=""
-    echo "Determining files changed"    
-    echo "TRAVIS_BRANCH: $TRAVIS_BRANCH"
+    echo "Determining files changed"
+    echo "TRAVIS_PULL_REQUEST / origin: $TRAVIS_PULL_REQUEST"
+    echo "TRAVIS_BRANCH / target: $TRAVIS_BRANCH"
     echo "HEAD: $(git log | head -n 1)"
-    [[ ! -z $TRAVIS_BRANCH ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD | grep helm/amazon-ec2-metadata-mock)
-    echo -e "\n$HELM_FILES_CHANGED"
-    echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD)"
-    echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...HEAD | grep helm/amazon-ec2-metadata-mock))"
+    echo -e "\nTRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
 
-    # check if multiple commits are correctly considered (push builds) + force push
-    # check if multiple commits in PRs are correctly considered (PR with multiple commits) + force push
-    # tag
+    # by default, run tests only if the helm chart has changed
+    # get the files changed in the PR / push 
+    HELM_FILES_CHANGED=""
+    if [ $TRAVIS_PULL_REQUEST == true ]; then
+        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH))"
+        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH | grep helm/amazon-ec2-metadata-mock)"
+        HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_BRANCH...$TRAVIS_PULL_REQUEST_BRANCH | grep helm/amazon-ec2-metadata-mock)
+    else
+        # push builds and others
+        # known issue: $TRAVIS_COMMIT_RANGE will fail the build on force push.
+        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE))"
+        echo -e "\n$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
+        [[ ! -z $TRAVIS_COMMIT_RANGE ]] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
+    fi
 
-    # [ ! -z $TRAVIS_BRANCH ] && HELM_FILES_CHANGED=$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)
-    # echo "TRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
-    # echo "HELM_FILES_CHANGED: $HELM_FILES_CHANGED"
-    # echo -e "$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE)\n"
-    # echo "$(git --no-pager diff --name-only $TRAVIS_COMMIT_RANGE | grep helm/amazon-ec2-metadata-mock)"
+    echo -e "\nHELM_FILES_CHANGED: $HELM_FILES_CHANGED"
 
     if [[ $FORCE_RUN == true || ! -z $HELM_FILES_CHANGED ]]; then
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
