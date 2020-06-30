@@ -5,13 +5,16 @@ services:
 - docker
 
 stages:
-- Build and Test
+- Build and Tests
+- Verify App Version In Helm
 - Github Release
 - Docker Release
+- Helm Chart and Docker Image Tests
 
 jobs:
   include:
-    - stage: Build and Test
+    # scripts run for every build
+    - stage: Build and Tests
       name: Build
       language: go
       go: 1.14.x
@@ -37,6 +40,12 @@ jobs:
       script: make build-release-assets
     - name: Build Docker images
       script: make build-docker-images
+
+    # stages run on tag creation only
+    - stage: Validate AEMM version
+      name: Validate AEMM version In Helm and README
+      if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(GITHUB_TOKEN) IS present
+      script: make validate-release-version
     - stage: Github Release
       name: Github release
       if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(GITHUB_TOKEN) IS present
@@ -45,3 +54,22 @@ jobs:
       name: Docker release
       if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(DOCKERHUB_TOKEN) IS present
       script: make release-docker
+
+    # scripts run for every build, but tests are setup to run conditionally, only when the AEMM helm chart is changed
+    # in the case of a new release, this stage runs after docker release in order to test the newly released Docker image
+    - stage: Helm Chart and Docker Image Tests
+      name: Helm chart / Docker Image Test for K8s v1.18
+      script: test/helm/chart-test.sh -k $K8S_VERSION
+      env: K8S_VERSION=1.18
+    - name: Helm chart / Docker Image Test for K8s v1.17
+      script: test/helm/chart-test.sh -k $K8S_VERSION
+      env: K8S_VERSION=1.17
+    - name: Helm chart / Docker Image Test for K8s v1.16
+      script: test/helm/chart-test.sh -k $K8S_VERSION
+      env: K8S_VERSION=1.16
+    - name: Helm chart / Docker Image Test for K8s v1.15
+      script: test/helm/chart-test.sh -k $K8S_VERSION
+      env: K8S_VERSION=1.15
+    - name: Helm chart / Docker Image Test for K8s v1.14
+      script: test/helm/chart-test.sh -k $K8S_VERSION
+      env: K8S_VERSION=1.14
