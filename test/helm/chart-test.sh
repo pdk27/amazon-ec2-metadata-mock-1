@@ -16,6 +16,10 @@ REPO_ROOT_PATH="$( cd "$(dirname "$0")"; cd ../../ ; pwd -P )"
 MAKEFILE_PATH=$REPO_ROOT_PATH/Makefile
 GET_CHANGED_FILES_FOR_CI_CMD="make -s -f $MAKEFILE_PATH get-changed-files-for-ci"
 
+REPO_ROOT_PATH="$( cd "$(dirname "$0")"; cd ../../ ; pwd -P )"
+MAKEFILE_PATH=$REPO_ROOT_PATH/Makefile
+GET_CHANGED_FILES_FOR_CI_CMD="make -s -f $MAKEFILE_PATH get-changed-files-for-ci"
+
 # KIND / Kubernetes
 readonly K8s_1_18="v1.18.2"
 readonly K8s_1_17="v1.17.5"
@@ -234,7 +238,6 @@ main() {
 
     FILES_CHANGED=$($GET_CHANGED_FILES_FOR_CI_CMD)
     HELM_FILES_CHANGED=$(echo $FILES_CHANGED | tr " " "\n" | grep helm/amazon-ec2-metadata-mock || true)
-
     if [[ $FORCE_RUN == true || ! -z $HELM_FILES_CHANGED ]]; then
         c_echo "Changes detected in Helm files:\n$HELM_FILES_CHANGED"
         c_echo "Running E2E tests for Helm charts using the AEMM Docker image specified in values.yaml"
