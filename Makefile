@@ -29,9 +29,6 @@ latest-release-tag:
 previous-release-tag:
 	@echo ${PREVIOUS_RELEASE_TAG}
 
-second-latest-tag:
-	@echo ${SECOND_LATEST_TAG}
-
 image:
 	@echo ${IMG_W_TAG}
 

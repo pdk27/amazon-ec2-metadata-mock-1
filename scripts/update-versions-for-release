@@ -48,18 +48,19 @@ update_versions_in_chart() {
 
     # update chart version
     curr_chart_version=$(sed -n 's/version: //p' $CHART)
-    if [[ $curr_chart_version != $LATEST_VERSION ]]; then
-        sed -i '' "s/version: $curr_chart_version/version: $new_chart_version/g" $CHART
-        sed -i '' "s/amazon-ec2-metadata-mock-$curr_chart_version.tgz/amazon-ec2-metadata-mock-$new_chart_version.tgz/g" $CHART_README
-        echo -e "\n✅ Updated chart version from $curr_chart_version to $new_chart_version in files: \n$CHART\n$CHART_README"
-    fi
+    curr_major_v=$(echo $curr_chart_version | tr '.' '\n' | head -1)
+    curr_minor_v=$(echo $curr_chart_version | tr '.' '\n' | head -2 | tail -1)
+    curr_patch_v=$(echo $curr_chart_version | tr '.' '\n' | tail -1)
+    new_patch_v=$(echo $(($curr_patch_v + 1))) # increment patch version
+    new_chart_version=$(echo $curr_major_v.$curr_minor_v.$new_patch_v)
 
-    # update versions, only if appVersion is not up-to-date
-    # we rely on helm chart linting to catch the case when the app version is updated but chart version is not incremented 
+    sed -i '' "s/version: $curr_chart_version/version: $new_chart_version/g" $CHART
+    sed -i '' "s/amazon-ec2-metadata-mock-$curr_chart_version.tgz/amazon-ec2-metadata-mock-$new_chart_version.tgz/g" $CHART_README
+    echo -e "\n✅ Updated chart version from $curr_chart_version to $new_chart_version in files: \n$CHART\n$CHART_README"
 }
 
 main() {
-    echo -e "🥑 Attempting to update AEMM release version and Helm chart version in preparation for a new release.\nPrevious version: $PREVIOUS_VERSION ---> Latest version: $LATEST_VERSION"
+    echo -e "🥑 Attempting to update AEMM release version and Helm chart version in preparation for a new release.\nPrevious AEMM version: $PREVIOUS_VERSION ---> Latest AEMM version: $LATEST_VERSION"
 
     for f in ${FILES[@]}; do
         if [[ $f == $CHART ]]; then
