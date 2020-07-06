@@ -17,7 +17,7 @@ stages:
 - name: Helm Chart and Docker Image E2E Tests
   # skip running this stage when updating release version as part of release prep
   # as the new Docker image wouldn't be available and previous commits should have already been tested
-  if: commit_message !~ /(skip Helm E2E Tests)/
+  if: commit_message !~ /(Skip Helm E2E Tests)/
 
 jobs:
   include:
