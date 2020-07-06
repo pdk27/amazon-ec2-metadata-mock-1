@@ -6,10 +6,18 @@ services:
 
 stages:
 - Build and Tests
-- Validate Versions for Release
-- Github Release
-- Docker Release
-- Helm Chart and Docker Image E2E Tests
+- name: Validate Versions for Release
+  if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+- name: Github Release
+  if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(GITHUB_TOKEN) IS present
+- name: Docker Release
+  if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(DOCKERHUB_TOKEN) IS present
+- name: Helm Chart Lint Test
+  if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+- name: Helm Chart and Docker Image E2E Tests
+  # skip running this stage when updating release version as part of release prep
+  # as the new Docker image wouldn't be available and previous commits should have already been tested
+  if: commit_message !~ /(skip Helm E2E Tests)/
 
 jobs:
   include:
@@ -42,24 +50,21 @@ jobs:
     # stages run on tag creation only
     - stage: Validate Versions for Release
       name: Validate AEMM and Chart versions
-      if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/
       script: make validate-release-version
     - stage: Github Release
       name: Github release
-      if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(GITHUB_TOKEN) IS present
       script: make release-github
     - stage: Docker Release
       name: Docker release
-      if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/ AND env(DOCKERHUB_TOKEN) IS present
       script: make release-docker
 
     # Helm E2E tests, to test Helm chart installation on latest Docker image and a local Docker image with unreleased commits, if any.
     # In the case of a new release, this stage runs after docker release in order to test the newly released Docker image.
-    - stage: Helm Chart and Docker Image E2E Tests
-      name: Helm Lint Test
-      if: type = push AND tag =~ /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+    - stage: Helm Chart Lint Test
+      name: Helm Chart Lint Test
       script: make helm-lint-test
-    - name: Helm chart / Docker Image Tests for K8s v1.18
+    - stage: Helm Chart and Docker Image E2E Tests
+      name: Helm chart / Docker Image Tests for K8s v1.18
       script: test/helm/chart-test.sh -i -k $K8S_VERSION
       env: K8S_VERSION=1.18
     - name: Helm chart / Docker Image Tests for K8s v1.17
