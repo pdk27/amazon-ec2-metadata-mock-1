@@ -129,17 +129,17 @@ create-local-tag-for-minor-release:
 create-local-tag-for-patch-release:
 	${MAKEFILE_PATH}/scripts/create-local-tag-for-release -p
 
-update-versions-for-release:
-	${MAKEFILE_PATH}/scripts/update-versions-for-release
+create-release-prep-pr:
+	${MAKEFILE_PATH}/scripts/prepare-for-release
 
-release-prep-major: create-local-tag-for-major-release update-versions-for-release
+release-prep-major: create-local-tag-for-major-release create-release-prep-pr
 
-release-prep-minor: create-local-tag-for-minor-release update-versions-for-release
+release-prep-minor: create-local-tag-for-minor-release create-release-prep-pr
 
-release-prep-patch: create-local-tag-for-patch-release update-versions-for-release
+release-prep-patch: create-local-tag-for-patch-release create-release-prep-pr
 
 release-prep-custom: # Run make NEW_VERSION=1.2.3 release-prep-custom to prep for a custom release version
 ifdef NEW_VERSION
-	$(shell echo "${MAKEFILE_PATH}/scripts/create-local-tag-for-release -v $(NEW_VERSION) && echo && make update-versions-for-release")
+	$(shell echo "${MAKEFILE_PATH}/scripts/create-local-tag-for-release -v $(NEW_VERSION) && echo && make create-release-prep-pr")
 endif
 	
